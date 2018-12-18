@@ -2,7 +2,6 @@ module GenViz
 
 using HTTP, JSON
 import HTTP.WebSockets.WebSocket
-import Random
 
 # From Blink.jl
 @static if Sys.isapple()
