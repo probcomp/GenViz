@@ -37,9 +37,9 @@ struct Viz
             else
                 req::HTTP.Request = http.message
                 resp = if req.target == "/"
-                   HTTP.Response(200, read(joinpath(@__DIR__, directory, "index.html")))
+                   HTTP.Response(200, read(joinpath(directory, "index.html")))
                else
-                   file = joinpath(@__DIR__, directory, HTTP.unescapeuri(req.target[2:end]))
+                   file = joinpath(directory, HTTP.unescapeuri(req.target[2:end]))
                    isfile(file) ? HTTP.Response(200, read(file)) : HTTP.Response(404)
                end
                startwrite(http)
