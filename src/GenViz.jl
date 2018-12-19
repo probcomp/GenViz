@@ -2,6 +2,7 @@ module GenViz
 
 using HTTP, JSON
 import HTTP.WebSockets.WebSocket
+import UUIDs
 
 # From Blink.jl
 @static if Sys.isapple()
@@ -13,69 +14,106 @@ elseif Sys.iswindows()
 end
 
 struct Viz
-    connections::Dict{String,WebSocket}
+    clients::Dict{String, WebSocket}
+    path::String
+    info
+    traces
+    id
+    server
 
-    Viz(directory) = Viz(directory, 8000)
-    Viz(directory, port) = begin
-        connected = Condition()
-        v = new(Dict{String,WebSocket}())
+    Viz(server, path, info) = begin
+        id = repr(UUIDs.uuid4())[7:end-2]
+        v = new(Dict{String,WebSocket}(), path, info, Dict(), id, server)
+        server.visualizations[id] = v
+    end
+end
 
+addClient(viz::Viz, clientId, client) = begin
+    viz.clients[clientId] = client
+    write(client, json(Dict("action" => "initialize", "traces" => viz.traces, "info" => viz.info)))
+end
+
+
+struct VizServer
+    visualizations::Dict{String, Viz}
+    port
+    connectionslock
+
+    VizServer(port) = begin
+        server = new(Dict{String, Viz}(), port, Base.Threads.SpinLock())
         @async HTTP.listen("127.0.0.1", port) do http
             if HTTP.WebSockets.is_upgrade(http.message)
                 HTTP.WebSockets.upgrade(http) do client
-                    while !eof(client)
+                    while isopen(client) && !eof(client)
                         msg = JSON.parse(String(readavailable(client)))
                         if msg["action"] == "connect"
-                            clientId = msg["id"]
-                            v.connections[clientId] = client
-                            notify(connected)
+                            println("Got connect message!")
+                            clientId = msg["clientId"]
+                            vizId = msg["vizId"]
+                            if haskey(server.visualizations, vizId)
+                                addClient(server.visualizations[vizId], clientId, client)
+                            else
+                                println("BAD VIZ-ID")
+                            end
                         elseif msg["action"] == "disconnect"
-                            delete!(v.connections, msg["id"])
+                            clientId = msg["clientId"]
+                            vizId = msg["vizId"]
+                            lock(server.connectionslock)
+                            delete!(server.visualizations[vizId].clients, clientId)
+                            unlock(server.connectionslock)
                         end
                     end
                 end
             else
                 req::HTTP.Request = http.message
-                resp = if req.target == "/"
-                   HTTP.Response(200, read(joinpath(directory, "index.html")))
-               else
-                   file = joinpath(directory, HTTP.unescapeuri(req.target[2:end]))
-                   isfile(file) ? HTTP.Response(200, read(file)) : HTTP.Response(404)
-               end
-               startwrite(http)
-               write(http, resp.body)
-           end
-       end
-       sleep(1)
-       launch("http://localhost:$(port)/")
-       wait(connected)
-       v
+                fullReqPath = HTTP.unescapeuri(req.target)
+                vizId = split(fullReqPath[2:end], "/")[1]
+                vizDir = server.visualizations[vizId].path
+                restOfPath = fullReqPath[2+length(vizId):end]
+                
+                resp = if restOfPath == "" || restOfPath == "/"
+                    HTTP.Response(200, read(joinpath(vizDir, "index.html")))
+                else
+                    file = joinpath(vizDir, restOfPath[2:end])
+                    isfile(file) ? HTTP.Response(200, read(file)) : HTTP.Response(404)
+                end
+                startwrite(http)
+                write(http, resp.body)
+            end
+        end
+        server
     end
 end
 
 broadcast(v::Viz, msg::Dict) = begin
-    for (cid, client) in v.connections
-        if isopen(client)
-            write(client, json(msg))
+    yield()
+    for (cid, client) in v.clients
+        yield()
+        while islocked(server.connectionslock)
+            yield()
         end
+        if haskey(v.clients, cid) && isopen(client)
+            try 
+                write(client, json(msg))
+            catch
+            end
+        end
+        unlock(server.connectionslock)
     end
 end
 
-setTrace(v::Viz, tId, t) = begin
-    msg = Dict("action" => "setTrace", "tId" => tId, "t" => t)
+putTrace!(v::Viz, tId, t) = begin
+    v.traces[tId] = t
+  msg = Dict("action" => "putTrace", "tId" => tId, "t" => t)
     broadcast(v, msg)
 end
 
-deleteTrace(v::Viz, tId::String) = begin
-    msg = Dict("action" => "removeTrace", "tId" => tId)
-   broadcast(v, msg)
+deleteTrace!(v::Viz, tId::String) = begin
+    delete!(v.traces, tId)
+  msg = Dict("action" => "removeTrace", "tId" => tId)
+    broadcast(v, msg)
 end
 
-init(v::Viz, args) = begin
-    msg = Dict("action" => "initialize", "args" => args)
-   broadcast(v, msg)
-end
-
-export Viz, setTrace, deleteTrace, init
+export Viz, putTrace!, deleteTrace!, VizServer
 
 end # module
