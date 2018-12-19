@@ -89,7 +89,7 @@ broadcast(v::Viz, msg::Dict) = begin
     yield()
     for (cid, client) in v.clients
         yield()
-        while islocked(server.connectionslock)
+        while islocked(v.server.connectionslock)
             yield()
         end
         if haskey(v.clients, cid) && isopen(client)
@@ -98,7 +98,7 @@ broadcast(v::Viz, msg::Dict) = begin
             catch
             end
         end
-        unlock(server.connectionslock)
+        unlock(v.server.connectionslock)
     end
 end
 
