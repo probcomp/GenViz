@@ -160,8 +160,9 @@ end
 
 server = VizServer(8000)
 v = Viz(server, joinpath(@__DIR__, "vue/dist"), [xs, ys])
-println("http://localhost:8000/$(v.id)/")
 sleep(0.5)
+openInBrowser(v)
+sleep(5)
 
 Gen.load_generated_functions()
 do_inference_uncertainty(xs, ys, 4, 200000, v)
