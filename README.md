@@ -20,6 +20,6 @@ Modify the visualization in `vue/src/components/Regression.vue` and `vue/src/App
 Modify the Gen source code in `run_example.jl`.
 
 ```
-cd vue && npm run build
+cd vue && npm install && npm run build
 ```
 This should result in a `vue/build/` directory.
