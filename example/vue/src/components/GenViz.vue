@@ -1,6 +1,6 @@
 <template>
   <div>
-      <slot :traces="traces" :info="info"></slot>
+      <GridViz :traces="traces" :info="info" />
   </div>
 </template>
 
@@ -19,8 +19,11 @@ window.onbeforeunload = function(){
     window.socket.close();
 }
 
+import GridViz from './GridViz.vue'
+
 export default {
   name: 'GenViz',
+  components: {GridViz},
   data() { 
     return {
       traces: {},
