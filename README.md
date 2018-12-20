@@ -15,11 +15,11 @@ Install [node.js](https://nodejs.org).
 
 Copy the `example` directory.
 
-Modify the visualization in `vue/src/components/Regression.vue` and `vue/src/App.vue`.
+Modify the visualization in `vue/src/components/Trace.vue`.
 
 Modify the Gen source code in `run_example.jl`.
 
 ```
 cd vue && npm install && npm run build
 ```
-This should result in a `vue/build/` directory.
+This should result in a `vue/dist/` directory.
