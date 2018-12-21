@@ -71,7 +71,9 @@ First, install [node.js](https://nodejs.org).
 
 Then, copy the `example/vue` directory into your project directory.
 
-The trace visualization is in `vue/src/components/Trace.vue`. The top of the file contains an HTML _template_. In this template, you can access parts of the trace you are rendering with the syntax `trace["address"]`. If the address is hierachical (e.g. `"a" => "b"`), the syntax is `trace["a"]["b"]`. You also have access to a suggested size, in `size.w` and `size.h`: use these, optionally, to make your visualization responsive to resizing. (You may want to use _either_ the suggested width _or_ the suggested height, then maintain whatever aspect ratio makes sense for your visualization.)
+The trace visualization is in `vue/src/components/Trace.vue`, and this is the file you should modify. 
+
+The top of the file contains an HTML _template_. In this template, you can access parts of the trace you are rendering with the syntax `trace["address"]`. If the address is hierachical (e.g. `"a" => "b"`), the syntax is `trace["a"]["b"]`. You also have access to a suggested size, in `size.w` and `size.h`: use these, optionally, to make your visualization responsive to resizing. (You may want to use _either_ the suggested width _or_ the suggested height, then maintain whatever aspect ratio makes sense for your visualization.)
 
 Arbitrary comptuation can be used by your template using the `computed` and `methods` objects at the bottom of the `Trace.vue` file.
 
