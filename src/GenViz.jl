@@ -1,7 +1,7 @@
 module GenViz
 
 using HTTP, JSON
-using Suppressor
+using Logging
 import HTTP.WebSockets.WebSocket
 import UUIDs
 import IJulia
@@ -45,47 +45,49 @@ struct VizServer
 
   VizServer(port) = begin
     server = new(Dict{String, Viz}(), port, Base.Threads.SpinLock())
-    @async @suppress HTTP.listen("127.0.0.1", port) do http
-      if HTTP.WebSockets.is_upgrade(http.message)
-        HTTP.WebSockets.upgrade(http) do client
-          while isopen(client) && !eof(client)
-            msg = JSON.parse(String(readavailable(client)))
-            if msg["action"] == "connect"
-              clientId = msg["clientId"]
-              vizId = msg["vizId"]
-              if haskey(server.visualizations, vizId)
-                addClient(server.visualizations[vizId], clientId, client)
+    @async with_logger(NullLogger()) do
+        HTTP.listen("127.0.0.1", port) do http
+          if HTTP.WebSockets.is_upgrade(http.message)
+            HTTP.WebSockets.upgrade(http) do client
+              while isopen(client) && !eof(client)
+                msg = JSON.parse(String(readavailable(client)))
+                if msg["action"] == "connect"
+                  clientId = msg["clientId"]
+                  vizId = msg["vizId"]
+                  if haskey(server.visualizations, vizId)
+                    addClient(server.visualizations[vizId], clientId, client)
+                  end
+                elseif msg["action"] == "disconnect"
+                  clientId = msg["clientId"]
+                  vizId = msg["vizId"]
+                  lock(server.connectionslock)
+                  delete!(server.visualizations[vizId].clients, clientId)
+                  unlock(server.connectionslock)
+                elseif msg["action"] == "save"
+                    clientId = msg["clientId"]
+                    vizId = msg["vizId"]
+                    server.visualizations[vizId].latestHTML[] = msg["content"]
+                    notify(server.visualizations[vizId].waitingForHTML)
+                end
               end
-            elseif msg["action"] == "disconnect"
-              clientId = msg["clientId"]
-              vizId = msg["vizId"]
-              lock(server.connectionslock)
-              delete!(server.visualizations[vizId].clients, clientId)
-              unlock(server.connectionslock)
-            elseif msg["action"] == "save"
-                clientId = msg["clientId"]
-                vizId = msg["vizId"]
-                server.visualizations[vizId].latestHTML[] = msg["content"]
-                notify(server.visualizations[vizId].waitingForHTML)
             end
+          else
+            req::HTTP.Request = http.message
+            fullReqPath = HTTP.unescapeuri(req.target)
+            vizId = split(fullReqPath[2:end], "/")[1]
+            vizDir = server.visualizations[vizId].path
+            restOfPath = fullReqPath[2+length(vizId):end]
+            
+            resp = if restOfPath == "" || restOfPath == "/"
+              HTTP.Response(200, read(joinpath(vizDir, "index.html")))
+            else
+              file = joinpath(vizDir, restOfPath[2:end])
+              isfile(file) ? HTTP.Response(200, read(file)) : HTTP.Response(404)
+            end
+            startwrite(http)
+            write(http, resp.body)
           end
         end
-      else
-        req::HTTP.Request = http.message
-        fullReqPath = HTTP.unescapeuri(req.target)
-        vizId = split(fullReqPath[2:end], "/")[1]
-        vizDir = server.visualizations[vizId].path
-        restOfPath = fullReqPath[2+length(vizId):end]
-        
-        resp = if restOfPath == "" || restOfPath == "/"
-          HTTP.Response(200, read(joinpath(vizDir, "index.html")))
-        else
-          file = joinpath(vizDir, restOfPath[2:end])
-          isfile(file) ? HTTP.Response(200, read(file)) : HTTP.Response(404)
-        end
-        startwrite(http)
-        write(http, resp.body)
-      end
     end
     server
   end
