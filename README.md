@@ -34,7 +34,7 @@ v = Viz(joinpath(@__DIR__, "my-viz/dist"), [xs, ys])
 
 This creates a visualization object `v` that can be manipulated using the `putTrace!` and `deleteTrace!` methods. In an MCMC algorithm, for example, you might initialize several chains and put them all into the visualization:
 
-```
+```julia
 traces = Array{Any}(undef, n_chains)
 for n=1:n_chains
     (traces[n], _) = initialize(model, model_inputs, observations)
@@ -56,7 +56,7 @@ The `putTrace!` and `deleteTrace!` operators modify the visualization's state. G
 
 5. Optionally, `displayInNotebook(v)` can be trailed by a Julia `do` block, e.g.
 
-```
+```julia
 displayInNotebook(v) do
 	iterative_inference(n_iters=100, viz=v)
 end
