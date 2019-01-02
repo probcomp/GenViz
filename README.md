@@ -12,10 +12,10 @@ The script will launch a browser window, in which you can view the running visua
 
 ## Using GenViz
 
-### Step 1: Create a custom visualization of your model
-The first step to using GenViz in your Gen project is to create a GenViz-compatible _trace visualization_: a directory of HTML, JavaScript, and CSS files that together describe how a single execution trace of a generative model should be visualized. 
+### Step 1: Create a custom renderer for your model
+The first step to using GenViz in your Gen project is to create a GenViz-compatible _trace renderer_: a directory of HTML, JavaScript, and CSS files that together describe how a single execution trace of a generative model should be visualized. 
 
-Although this repository provides generic trace visualizations that may be suitable for some purposes, most users will want to customize the visualization to capture model-specific structure. (For example, in a model of an agent in an environment, a good visualization would display the environment and the agent.) We provide a general template for writing custom visualizations, and instructions for doing so further below.
+Although this repository provides generic trace renderers that may be suitable for some purposes, most users will want to customize the renderer to capture model-specific structure. (For example, in a model of an agent in an environment, a good renderer would draw the environment and the agent.) We provide a general template for writing custom renderers, and instructions for doing so further below.
 
 ### Step 2: Initialize and interactively update the visualization from Gen
 You can use GenViz from a Julia script or from an IJulia notebook. In either case, you'll want to begin by starting a "visualization server" on some open port (e.g. port 8000).
@@ -25,11 +25,11 @@ using GenViz
 viz_server = VizServer(8000) # or some other port
 ```
 
-You can then create one or more `Viz` objects, which each represent a single figure or visualization. To create one, you'll need to supply the global `VizServer`, a path to the visualization directory created in Step 1, and any custom initialization parameters your visualization expects. For example, in a linear regression program, we might pass the `x` and `y` coordinates of all observed points as initialization arguments:
+You can then create one or more `Viz` objects, which each represent a single figure or visualization. To create one, you'll need to supply the global `VizServer`, a path to the trace renderer created in Step 1, and any custom initialization parameters your renderer expects. For example, in a linear regression program, we might pass the `x` and `y` coordinates of all observed points as initialization arguments, as they will not vary during the course of inference:
 
 ```julia
 xs, ys = generate_data()
-v = Viz(joinpath(@__DIR__, "my-viz/dist"), [xs, ys])
+v = Viz(joinpath(@__DIR__, "my-renderer/dist"), [xs, ys])
 ```
 
 This creates a visualization object `v` that can be manipulated using the `putTrace!` and `deleteTrace!` methods. In an MCMC algorithm, for example, you might initialize several chains and put them all into the visualization:
@@ -58,22 +58,22 @@ The `putTrace!` and `deleteTrace!` operators modify the visualization's state. G
 
 ```julia
 displayInNotebook(v) do
-	iterative_inference(n_iters=100, viz=v)
+    iterative_inference(n_iters=100, viz=v)
 end
 ```
 This opens a live display of the visualization `v` and runs the code in the `do` block, animating any changes the code makes to `v`. Then, once the `do` block is over, the live view is "frozen" into a static figure, capturing `v`'s state at the end of the `do` block. The visualization object can still be updated in other notebook cells and re-rendered with another call to `displayInNotebook`. In fact, the same cell can be rerun to further update the visualization and re-freeze it into a static figure.
 
-## Creating a new visualization
+## Creating a new trace renderer
 
-The easiest way to create a new visualization is to modify the provided template, which uses Vue.js behind the scenes. 
+The easiest way to create a new trace renderer is to modify the provided template, which uses Vue.js behind the scenes. 
 
 First, install [node.js](https://nodejs.org).
 
 Then, copy the `example/vue` directory into your project directory.
 
-The trace visualization is in `vue/src/components/Trace.vue`, and this is the file you should modify. 
+The trace renderer is in `vue/src/components/Trace.vue`, and this is the file you should modify. 
 
-The top of the file contains an HTML _template_. In this template, you can access parts of the trace you are rendering with the syntax `trace["address"]`. If the address is hierachical (e.g. `"a" => "b"`), the syntax is `trace["a"]["b"]`. You also have access to a suggested size, in `size.w` and `size.h`: use these, optionally, to make your visualization responsive to resizing. (You may want to use _either_ the suggested width _or_ the suggested height, then maintain whatever aspect ratio makes sense for your visualization.)
+The top of the file contains an HTML _template_. In this template, you can access parts of the trace you are rendering with the syntax `trace["address"]`. If the address is hierachical (e.g. `"a" => "b"`), the syntax is `trace["a"]["b"]`. You also have access to a suggested size, in `size.w` and `size.h`: use these, optionally, to make your visualization responsive to resizing. (You may want to use _either_ the suggested width _or_ the suggested height, then maintain whatever aspect ratio makes sense for your rendering.)
 
 Arbitrary comptuation can be used by your template using the `computed` and `methods` objects at the bottom of the `Trace.vue` file.
 
@@ -82,5 +82,7 @@ When you have finished editing the `Trace.vue` file, run:
 ```
 cd vue && npm install && npm run build
 ```
+
+(The `npm install` is only necessary the first time.)
 
 This should result in a `vue/dist/` directory. Use this directory as the path provided to the `Viz` constructor in the Julia code.
