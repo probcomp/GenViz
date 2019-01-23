@@ -124,13 +124,14 @@ end
 
 # Blocks if no connections
 getHTML(v::Viz) = begin
-    println("GETTING HTML")
+    if isempty(v.clients)
+      @warn("Trying to get HTML for a visualization that is not yet open. Waiting for a client...")
+    end
     while isempty(v.clients)
-        println("No clients for this viz :(")
         yield()
+        sleep(1)
     end
     broadcast(v, Dict("action" => "saveHTML"))
-    println("Message broadcast... waiting for it to be received")
     wait(v.waitingForHTML)
     return v.latestHTML[]
 end
@@ -154,19 +155,20 @@ openInNotebook(v::Viz, height::Int64=600) =
   display("text/html", "<iframe src=$(vizURL(v)) frameBorder=0 width=100% height=$(height)></iframe>")
 
 # Display an iframe in a Jupyter Notebook, run some code to update the visualization,
-# then freeze it. 
+# then freeze it. Returns the result of the do block.
 function displayInNotebook(f::Function, v::Viz, height::Int64=600)
     openInNotebook(v, height)
-    f()
+    r = f()
+    sleep(1)
     html = getHTML(v)
-    IJulia.clear_output()
+    IJulia.clear_output(true)
     display("text/html", html)
+    r
 end
 
 # Capture the current state of the visualization in a Jupyter Notebook.
 function displayInNotebook(v::Viz, height::Int64=600)
     displayInNotebook(v, height) do
-        sleep(1)
     end
 end
 

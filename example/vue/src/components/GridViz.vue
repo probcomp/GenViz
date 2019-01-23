@@ -1,6 +1,6 @@
 <template>
 <div>
-    <h1>Traces (Grid View)</h1>
+    <h1>Traces</h1>
     <div id="traces">
         <div v-for="(t, tId) in traces" :key="tId">
             <Trace :trace="t" :info="info" :size="traceSize" :tId="tId">
@@ -23,7 +23,12 @@ export default {
   props: ['traces', 'info'],
   computed: {
       traceSize() {
-         return {h: this.windowSize.height/5, w: this.windowSize.width/5}
+        let numTraces = Object.keys(this.traces).length
+        let perRow = numTraces < 5 ? numTraces : 5
+        let numRows = Math.ceil(numTraces / perRow)
+        let suggestedHeight = this.windowSize.height / numRows;
+        let suggestedWidth = (this.windowSize.width - 10) / perRow;
+        return {h: suggestedHeight, w: suggestedWidth}
       }
   },
   mounted () {

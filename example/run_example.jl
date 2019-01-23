@@ -2,7 +2,7 @@ using Gen, GenViz
 using FunctionalCollections: PersistentVector
 import Random
 
-@staticgen function datum(x::Float64, inlier_std::Float64,
+@gen (static) function datum(x::Float64, inlier_std::Float64,
                           outlier_std::Float64, slope::Float64, intercept::Float64)
     is_outlier::Bool = @addr(bernoulli(0.5), :z)
     std = is_outlier ? outlier_std : inlier_std
@@ -22,7 +22,7 @@ function compute_argdiff(inlier_std_diff, outlier_std_diff, slope_diff, intercep
     end
 end
 
-@staticgen function model(xs::Vector{Float64})
+@gen (static) function model(xs::Vector{Float64})
     n = length(xs)
     inlier_log_std::Float64 = @addr(normal(0, 2), :log_inlier_std)
     outlier_log_std::Float64 = @addr(normal(0, 2), :log_outlier_std)
@@ -61,7 +61,7 @@ function make_data_set(n)
     (xs, ys)
 end
 
-@staticgen function datum(x::Float64, inlier_std::Float64, outlier_std::Float64, slope::Float64, intercept::Float64)
+@gen (static) function datum(x::Float64, inlier_std::Float64, outlier_std::Float64, slope::Float64, intercept::Float64)
     is_outlier::Bool = @addr(bernoulli(0.5), :z)
     std = is_outlier ? outlier_std : inlier_std
     mu = is_outlier ? 0. : x * slope + intercept
@@ -71,7 +71,7 @@ end
 
 data = Map(datum)
 
-@staticgen function model(xs::Vector{Float64})
+@gen (static) function model(xs::Vector{Float64})
     n = length(xs)
     log_inlier_std::Float64 = @addr(normal(-1, 0.5), :log_inlier_std)
     inlier_std = exp(log_inlier_std)
@@ -137,10 +137,10 @@ function do_inference_uncertainty(xs, ys, n_chains, num_iters, v)
         # steps on the parameters
         for j=1:5
             for n=1:n_chains
-                (traces[n], _) = custom_mh(traces[n], slope_proposal, ())
-                (traces[n], _) = custom_mh(traces[n], intercept_proposal, ())
-                (traces[n], _) = custom_mh(traces[n], inlier_std_proposal, ())
-                (traces[n], _) = custom_mh(traces[n], outlier_std_proposal, ())
+                (traces[n], _) = mh(traces[n], slope_proposal, ())
+                (traces[n], _) = mh(traces[n], intercept_proposal, ())
+                (traces[n], _) = mh(traces[n], inlier_std_proposal, ())
+                (traces[n], _) = mh(traces[n], outlier_std_proposal, ())
                 putTrace!(v, n, trace_to_dict(traces[n]))
             end
         end
@@ -148,7 +148,7 @@ function do_inference_uncertainty(xs, ys, n_chains, num_iters, v)
         # step on the outliers
         for n=1:n_chains
             for j=1:length(xs)
-                (traces[n], _) = custom_mh(traces[n], is_outlier_proposal, (j,))
+                (traces[n], _) = mh(traces[n], is_outlier_proposal, (j,))
             end
             putTrace!(v, n, trace_to_dict(traces[n]))
         end
@@ -162,8 +162,9 @@ server = VizServer(8000)
 v = Viz(server, joinpath(@__DIR__, "vue/dist"), [xs, ys])
 sleep(0.5)
 openInBrowser(v)
-sleep(5)
+sleep(3)
 
 Gen.load_generated_functions()
-do_inference_uncertainty(xs, ys, 4, 200000, v)
+do_inference_uncertainty(xs, ys, 4, 10, v)
+saveToFile(v, joinpath(@__DIR__, "output.html"))
 readline(stdin)
