@@ -172,6 +172,14 @@ function displayInNotebook(v::Viz, height::Int64=600)
     end
 end
 
-export Viz, putTrace!, deleteTrace!, VizServer, vizURL, displayInNotebook, openInNotebook, openInBrowser, saveToFile
+export deleteTrace!
+export displayInNotebook
+export openInBrowser
+export openInNotebook
+export putTrace!
+export saveToFile
+export Viz
+export VizServer
+export vizURL
 
 end # module
