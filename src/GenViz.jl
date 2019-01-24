@@ -42,9 +42,10 @@ struct VizServer
   visualizations::Dict{String, Viz}
   port
   connectionslock
+end
 
-  VizServer(port) = begin
-    server = new(Dict{String, Viz}(), port, Base.Threads.SpinLock())
+function VizServer(port)
+    server = VizServer(Dict{String, Viz}(), port, Base.Threads.SpinLock())
     @async with_logger(NullLogger()) do
         HTTP.listen("0.0.0.0", port) do http
           if HTTP.WebSockets.is_upgrade(http.message)
@@ -90,7 +91,6 @@ struct VizServer
         end
     end
     server
-  end
 end
 
 broadcast(v::Viz, msg::Dict) = begin
