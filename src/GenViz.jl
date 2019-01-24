@@ -46,7 +46,7 @@ struct VizServer
   VizServer(port) = begin
     server = new(Dict{String, Viz}(), port, Base.Threads.SpinLock())
     @async with_logger(NullLogger()) do
-        HTTP.listen("127.0.0.1", port) do http
+        HTTP.listen("0.0.0.0", port) do http
           if HTTP.WebSockets.is_upgrade(http.message)
             HTTP.WebSockets.upgrade(http) do client
               while isopen(client) && !eof(client)
