@@ -28,7 +28,7 @@ end
 
 function Viz(server, path, info)
     id = repr(UUIDs.uuid4())[7:end-2]
-    v = new(Dict{String,WebSocket}(), path, info, Dict(), id, server, Ref(""), Condition())
+    v = Viz(Dict{String,WebSocket}(), path, info, Dict(), id, server, Ref(""), Condition())
     server.visualizations[id] = v
 end
 
