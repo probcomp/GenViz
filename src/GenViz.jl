@@ -77,7 +77,7 @@ struct VizServer
             vizId = split(fullReqPath[2:end], "/")[1]
             vizDir = server.visualizations[vizId].path
             restOfPath = fullReqPath[2+length(vizId):end]
-            
+
             resp = if restOfPath == "" || restOfPath == "/"
               HTTP.Response(200, read(joinpath(vizDir, "index.html")))
             else
@@ -101,7 +101,7 @@ broadcast(v::Viz, msg::Dict) = begin
       yield()
     end
     if haskey(v.clients, cid) && isopen(client)
-      try 
+      try
         write(client, json(msg))
       catch
       end
@@ -150,8 +150,8 @@ saveToFile(v::Viz, path) = begin
     end
 end
 
-# Display an iframe in a Jupyter Notebook. 
-openInNotebook(v::Viz, height::Int64=600) = 
+# Display an iframe in a Jupyter Notebook.
+openInNotebook(v::Viz, height::Int64=600) =
   display("text/html", "<iframe src=$(vizURL(v)) frameBorder=0 width=100% height=$(height)></iframe>")
 
 # Display an iframe in a Jupyter Notebook, run some code to update the visualization,
