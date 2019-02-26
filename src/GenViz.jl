@@ -24,12 +24,12 @@ struct Viz
   server
   latestHTML::Ref{String}
   waitingForHTML::Condition
+end
 
-  Viz(server, path, info) = begin
+function Viz(server, path, info)
     id = repr(UUIDs.uuid4())[7:end-2]
-    v = new(Dict{String,WebSocket}(), path, info, Dict(), id, server, Ref(""), Condition())
+    v = Viz(Dict{String,WebSocket}(), path, info, Dict(), id, server, Ref(""), Condition())
     server.visualizations[id] = v
-  end
 end
 
 addClient(viz::Viz, clientId, client) = begin
@@ -42,11 +42,12 @@ struct VizServer
   visualizations::Dict{String, Viz}
   port
   connectionslock
+end
 
-  VizServer(port) = begin
-    server = new(Dict{String, Viz}(), port, Base.Threads.SpinLock())
+function VizServer(port)
+    server = VizServer(Dict{String, Viz}(), port, Base.Threads.SpinLock())
     @async with_logger(NullLogger()) do
-        HTTP.listen("127.0.0.1", port) do http
+        HTTP.listen("0.0.0.0", port) do http
           if HTTP.WebSockets.is_upgrade(http.message)
             HTTP.WebSockets.upgrade(http) do client
               while isopen(client) && !eof(client)
@@ -77,7 +78,7 @@ struct VizServer
             vizId = split(fullReqPath[2:end], "/")[1]
             vizDir = server.visualizations[vizId].path
             restOfPath = fullReqPath[2+length(vizId):end]
-            
+
             resp = if restOfPath == "" || restOfPath == "/"
               HTTP.Response(200, read(joinpath(vizDir, "index.html")))
             else
@@ -90,7 +91,6 @@ struct VizServer
         end
     end
     server
-  end
 end
 
 broadcast(v::Viz, msg::Dict) = begin
@@ -101,7 +101,7 @@ broadcast(v::Viz, msg::Dict) = begin
       yield()
     end
     if haskey(v.clients, cid) && isopen(client)
-      try 
+      try
         write(client, json(msg))
       catch
       end
@@ -150,8 +150,8 @@ saveToFile(v::Viz, path) = begin
     end
 end
 
-# Display an iframe in a Jupyter Notebook. 
-openInNotebook(v::Viz, height::Int64=600) = 
+# Display an iframe in a Jupyter Notebook.
+openInNotebook(v::Viz, height::Int64=600) =
   display("text/html", "<iframe src=$(vizURL(v)) frameBorder=0 width=100% height=$(height)></iframe>")
 
 # Display an iframe in a Jupyter Notebook, run some code to update the visualization,
@@ -172,6 +172,14 @@ function displayInNotebook(v::Viz, height::Int64=600)
     end
 end
 
-export Viz, putTrace!, deleteTrace!, VizServer, vizURL, displayInNotebook, openInNotebook, openInBrowser, saveToFile
+export deleteTrace!
+export displayInNotebook
+export openInBrowser
+export openInNotebook
+export putTrace!
+export saveToFile
+export Viz
+export VizServer
+export vizURL
 
 end # module
