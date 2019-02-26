@@ -26,8 +26,8 @@ export default {
         let numTraces = Object.keys(this.traces).length
         let perRow = numTraces < 5 ? numTraces : 5
         let numRows = Math.ceil(numTraces / perRow)
-        let suggestedHeight = this.windowSize.height / numRows;
-        let suggestedWidth = (this.windowSize.width - 10) / perRow;
+        let suggestedHeight = Math.min(500, this.windowSize.height / numRows);
+        let suggestedWidth = Math.min(500, (this.windowSize.width - 10) / perRow);
         return {h: suggestedHeight, w: suggestedWidth}
       }
   },

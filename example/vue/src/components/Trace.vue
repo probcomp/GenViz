@@ -3,7 +3,7 @@
        Because we want to maintain a constant aspect ratio of 1:1,
        we use only size.w, and use it for both the width and height -->
   <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" 
-      :height="Math.min(500, size.w)" :width="Math.min(500, size.w)">
+      :height="size.w" :width="size.w">
       <!-- data points -->
       <circle v-for="(point, idx) in points" :key="idx" 
           :cx="xLogicalToPixel(point.x)" 
@@ -18,13 +18,13 @@
 
       <!-- outlier noise -->
       <line 
-        :x1="-200" :y1="yLogicalToPixel(0.)" 
-        :x2="700"  :y2="yLogicalToPixel(0.)" 
+        :x1="0"       :y1="yLogicalToPixel(0.)" 
+        :x2="size.w"  :y2="yLogicalToPixel(0.)" 
         :style="'stroke:rgba(0,0,0,0.1);stroke-width:' + stdLogicalToPixel(trace['outlier_std'])*4" />
 
       <!-- mean -->
       <line :x1="-200" :y1="yLogicalToPixel(xPixelToLogical(-200)*trace['slope'] + trace['intercept'])" 
-            :x2="700"  :y2="yLogicalToPixel(xPixelToLogical(700) *trace['slope'] + trace['intercept'])" 
+            :x2="size.w+200"  :y2="yLogicalToPixel(xPixelToLogical(size.w+200) *trace['slope'] + trace['intercept'])" 
               style="stroke:rgba(0,0,0,0.7);stroke-width:2" />
   </svg>
 </template>
@@ -59,7 +59,7 @@ export default {
       let y1_high_pixel = this.yLogicalToPixel(y1_no_noise + this.trace['inlier_std'] * 2)
       let y1_low_pixel  = this.yLogicalToPixel(y1_no_noise - this.trace['inlier_std'] * 2)
 
-      let x2_pixel = 700
+      let x2_pixel = this.size.w + 200
       let y2_no_noise = this.xPixelToLogical(x2_pixel) * this.trace['slope'] + this.trace['intercept']
       let y2_high_pixel = this.yLogicalToPixel(y2_no_noise + this.trace['inlier_std'] * 2)
       let y2_low_pixel  = this.yLogicalToPixel(y2_no_noise - this.trace['inlier_std'] * 2)
