@@ -158,7 +158,7 @@ end
 (xs, ys) = make_data_set(200)
 
 
-server = VizServer(8000)
+server = VizServer("127.0.0.1", 8000)
 v = Viz(server, joinpath(@__DIR__, "vue/dist"), [xs, ys])
 sleep(0.5)
 openInBrowser(v)

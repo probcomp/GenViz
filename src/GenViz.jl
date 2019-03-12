@@ -40,12 +40,17 @@ end
 
 struct VizServer
   visualizations::Dict{String, Viz}
+  host
   port
   connectionslock
 end
 
 function VizServer(port)
-    server = VizServer(Dict{String, Viz}(), port, Base.Threads.SpinLock())
+    VizServer("127.0.0.1", port)
+end
+
+function VizServer(host, port)
+    server = VizServer(Dict{String, Viz}(), host, port, Base.Threads.SpinLock())
     @async with_logger(NullLogger()) do
         HTTP.listen("0.0.0.0", port) do http
           if HTTP.WebSockets.is_upgrade(http.message)
@@ -136,8 +141,7 @@ getHTML(v::Viz) = begin
     return v.latestHTML[]
 end
 
-# TODO: fix to work when not on localhost
-vizURL(v::Viz) = "http://127.0.0.1:$(v.server.port)/$(v.id)/"
+vizURL(v::Viz) = "http://$(v.server.host):$(v.server.port)/$(v.id)/"
 
 # Open a viz in a new browser window
 openInBrowser(v::Viz) = launch(vizURL(v))
