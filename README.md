@@ -28,8 +28,9 @@ viz_server = VizServer(8000) # or some other port
 You can then create one or more `Viz` objects, which each represent a single figure or visualization. To create one, you'll need to supply the global `VizServer`, a path to the trace renderer created in Step 1, and any custom initialization parameters your renderer expects. For example, in a linear regression program, we might pass the `x` and `y` coordinates of all observed points as initialization arguments, as they will not vary during the course of inference:
 
 ```julia
-xs, ys = generate_data()
-v = Viz(joinpath(@__DIR__, "my-renderer/dist"), [xs, ys])
+xs = collect(0:0.1:10);
+ys = sin.(xs);
+v = Viz(viz_server, joinpath(@__DIR__, "my-renderer/dist"), [xs, ys])
 ```
 
 This creates a visualization object `v` that can be manipulated using the `putTrace!` and `deleteTrace!` methods. In an MCMC algorithm, for example, you might initialize several chains and put them all into the visualization:
